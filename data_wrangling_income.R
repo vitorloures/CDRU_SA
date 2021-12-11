@@ -326,5 +326,60 @@ write_xlsx(regiao_dct_sexo_escolaridade, path =file.path(getwd(), "regiao_direto
 write_xlsx(regiao_idct_sexo_escolaridade, path =file.path(getwd(), "regiao_indireto_sexo_escolaridade.xlsx"))
 
 
+### Gera arquivos xlsx
+
+sheets <- list("geral" = brasil_direto_geral, "regiao" = brasil_dct_por_regiao, 
+               "raca" = brasil_dct_por_raca, "tipo_deficiencia" = brasil_dct_por_tipo_deficiencia,
+               "sexo_raca" = brasil_dct_sexo_raca,
+               "sexo_escolaridade" = brasil_dct_sexo_escolaridade,
+               "escolaridade" = brasil_dct_por_escolaridade,
+               "sexo" = brasil_dct_por_sexo,
+               "faixa_etaria" = brasil_dct_por_faixa_etaria,
+               "deficiencia" = brasil_dct_por_deficiencia) 
+write_xlsx(sheets, file.path(getwd(), "brasil_direto.xlsx"))
+
+sheets <- list("geral" = brasil_indireto_geral, "regiao" = brasil_idct_por_regiao, 
+               "raca" = brasil_idct_por_raca, "tipo_deficiencia" = brasil_idct_por_tipo_deficiencia,
+               "sexo_raca" = brasil_idct_sexo_raca,
+               "sexo_escolaridade" = brasil_idct_sexo_escolaridade,
+               "escolaridade" = brasil_idct_por_escolaridade,
+               "sexo" = brasil_idct_por_sexo,
+               "faixa_etaria" = brasil_idct_por_faixa_etaria,
+               "deficiencia" = brasil_idct_por_deficiencia) 
+write_xlsx(sheets, file.path(getwd(), "brasil_indireto.xlsx"))
+
+sheets <- list(
+  "raca" = uf_dct_por_raca,
+  "escolaridade" = uf_dct_por_escolaridade,
+  "sexo" = brasil_dct_por_sexo,
+  "faixa_etaria" = uf_dct_por_faixa_etaria,
+  "deficiencia" = uf_dct_por_deficiencia) 
+write_xlsx(sheets, file.path(getwd(), "uf_direto.xlsx"))
+
+sheets <- list(
+               "raca" = uf_idct_por_raca,
+               "escolaridade" = uf_idct_por_escolaridade,
+               "sexo" = brasil_idct_por_sexo,
+               "faixa_etaria" = uf_idct_por_faixa_etaria,
+               "deficiencia" = uf_idct_por_deficiencia) 
+write_xlsx(sheets, file.path(getwd(), "uf_indireto.xlsx"))
+
+
+sheets <- list(
+  "sexo_escolaridade" = regiao_dct_sexo_escolaridade,
+  "sexo_raca" = regiao_dct_sexo_raca,
+  "tipo_deficiencia" = regiao_dct_por_tipo_deficiencia, 
+  "deficiencia" = regiao_dct_por_deficiencia) 
+write_xlsx(sheets, file.path(getwd(), "regiao_direto.xlsx"))
+
+sheets <- list(
+  "sexo_escolaridade" = regiao_idct_sexo_escolaridade,
+  "sexo_raca" = regiao_idct_sexo_raca,
+  "tipo_deficiencia" = regiao_idct_por_tipo_deficiencia, 
+  "deficiencia" = regiao_idct_por_deficiencia) 
+
+write_xlsx(sheets, file.path(getwd(), "regiao_indireto.xlsx"))
+
+
 # Isso é tudo pessoal:
 beepr::beep(sound=3)
