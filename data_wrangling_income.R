@@ -1,6 +1,7 @@
-#### Limpeza dos dados ###
+### Limpeza dos dados ###
 
 library(readxl)
+library(writexl)
 library(tidyverse)
 library(magrittr, include.only = '%>%')
 library(tibble)
@@ -28,66 +29,86 @@ uf_para_regiao <- function(uf) {
   }
   return (regiao)
 }
-
-agrega_por_cnae_e_var_brasil <- function(input_df, var) {
-    output_df <- input_df %>%
-    group_by(cnae_2_subclasse, {{var}}) %>%
-    summarise(count = n(), 
-              mean = mean(valor_remuneracao_media_nominal), 
-              std = sd(valor_remuneracao_media_nominal) / mean(valor_remuneracao_media_nominal))  %>% 
-    group_by(cnae_2_subclasse) %>% 
-    mutate(count_cnae = sum(count)) %>% 
-    group_by({{var}}) %>% 
-    mutate(count_per=paste0(round(100*count/count_cnae,2), '%'))
-
-  return (output_df)
-}
-
-rais_direto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_direto.csv"),
-                                 show_col_types = FALSE)
-
-rais_direto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_direto.csv"),
-                                 show_col_types = FALSE)
-
-rais_indireto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_indireto.csv"),
-                                 show_col_types = FALSE)
-
-rais_indireto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_indireto.csv"),
-                                 show_col_types = FALSE)
+  
+  agrega_por_cnae_e_var_brasil <- function(input_df, var) {
+      output_df <- input_df %>%
+      group_by(cnae_2_subclasse, {{var}}) %>%
+      summarise(n_trabalhadores = n(), 
+                mean = mean(valor_remuneracao_media), 
+                std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media))  %>% 
+      group_by(cnae_2_subclasse) %>% 
+      mutate(count_cnae = sum(count)) %>% 
+      group_by({{var}}) %>% 
+      mutate(count_per=round(100*count/count_cnae,2))
+  
+    return (output_df)
+  }
+  
+  rais_direto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_direto.csv"),
+                                   show_col_types = FALSE)
+  
+  rais_direto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_direto.csv"),
+                                   show_col_types = FALSE)
+  
+  rais_indireto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_indireto.csv"),
+                                   show_col_types = FALSE)
+  
+  rais_indireto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_indireto.csv"),
+                                   show_col_types = FALSE)
 
 # TODO: Analisar dados valor_remuneracao_media_nominal == 0
-# Filtra apenas linhas e colunas necessários para geração das tabelas a seguir
+# Filtra apenas linhas e colunas necessárias para geração das tabelas a seguir
 direto_vinculos_tratado <- rais_direto_vinculos %>% 
-    select(ano, sigla_uf, id_municipio, id_municipio_6_trabalho, valor_remuneracao_media_nominal, cbo_2002, 
-           idade, sexo, raca_cor, nacionalidade, indicador_portador_deficiencia, cnae_2_subclasse,
-           grau_instrucao_1985_2005, grau_instrucao_apos_2005) %>%
-    dplyr::filter(ano == 2019 & valor_remuneracao_media_nominal > 0)  
+    select(ano, sigla_uf, id_municipio, valor_remuneracao_media, cbo_2002, 
+           idade, faixa_etaria, sexo, raca_cor, nacionalidade, indicador_portador_deficiencia, tipo_deficiencia,
+           cnae_2_subclasse, grau_instrucao_apos_2005) %>%
+    dplyr::filter(ano == 2019 & valor_remuneracao_media > 0)  
 
 direto_vinculos_tratado$regiao <- lapply(direto_vinculos_tratado$sigla_uf, 
                                          FUN=uf_para_regiao)
 
+indireto_vinculos_tratado <- rais_indireto_vinculos %>% 
+  select(ano, sigla_uf, id_municipio, id_municipio_6_trabalho, valor_remuneracao_media_nominal, cbo_2002, 
+         idade, sexo, raca_cor, nacionalidade, indicador_portador_deficiencia, cnae_2_subclasse,
+         grau_instrucao_1985_2005, grau_instrucao_apos_2005) %>%
+  dplyr::filter(ano == 2019 & valor_remuneracao_media_nominal > 0) %>%
+  rename(valor_remuneracao_media=valor_remuneracao_media_nominal)
+
+indireto_vinculos_tratado$regiao <- lapply(indireto_vinculos_tratado$sigla_uf, 
+                                         FUN=uf_para_regiao)
 
 # TABELA 1: Total de trabalhadores e média salarial por CNAE
-df_trabalhadores_remuneracao_setor <- direto_vinculos_tratado %>%
+brasil_direto_geral <- direto_vinculos_tratado %>%
       group_by(cnae_2_subclasse) %>% 
-      summarise(count = n(), mean(valor_remuneracao_media_nominal)) 
+      summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
 
-tictoc::tic()
-tibble::view(df_trabalhadores_remuneracao_setor)
-tibble::glimpse(df_trabalhadores_remuneracao_setor)
-beepr::beep(sound=1)
-tictoc::toc()
+brasil_indireto_geral <- indireto_vinculos_tratado %>%
+  group_by(cnae_2_subclasse) %>% 
+  summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+
 
 # TABELA 2: Visualização por região geográfica 
 
-df_por_regiao <- direto_vinculos_tratado %>%
+df_dir_por_regiao <- direto_vinculos_tratado %>%
   group_by(cnae_2_subclasse, regiao) %>%
   summarise(count = n(), 
-            mean = mean(valor_remuneracao_media_nominal), 
-            std = sd(valor_remuneracao_media_nominal) / mean(valor_remuneracao_media_nominal)) 
+            mean = mean(valor_remuneracao_media), 
+            std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media)) 
+
+df_indir_por_regiao <- indireto_vinculos_tratado %>%
+  group_by(cnae_2_subclasse, regiao) %>%
+  summarise(count = n(), 
+            mean = mean(valor_remuneracao_media), 
+            std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media)) 
 
 # Add percentage column
-df_regiao_percentual <- df_por_regiao %>% 
+df_dir_regiao_percentual <- df_dir_por_regiao %>% 
+  group_by(cnae_2_subclasse) %>% 
+  mutate(count_cnae = sum(count)) %>% 
+  group_by(regiao) %>% 
+  mutate(count_per=paste0(round(100*count/count_cnae,2), '%'))
+
+df_indir_regiao_percentual <- df_indir_por_regiao %>% 
   group_by(cnae_2_subclasse) %>% 
   mutate(count_cnae = sum(count)) %>% 
   group_by(regiao) %>% 
@@ -95,29 +116,55 @@ df_regiao_percentual <- df_por_regiao %>%
 
 # Raça agregado a nível Brasil
 
-df_por_raca_brasil <- direto_vinculos_tratado %>%
+df_dir_por_raca_brasil <- direto_vinculos_tratado %>%
   group_by(cnae_2_subclasse, raca_cor) %>%
   summarise(count = n(), 
-            mean = mean(valor_remuneracao_media_nominal), 
-            std = sd(valor_remuneracao_media_nominal) / mean(valor_remuneracao_media_nominal))  %>% 
+            mean = mean(valor_remuneracao_media), 
+            std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media))  %>% 
             group_by(cnae_2_subclasse) %>% 
             mutate(count_cnae = sum(count)) %>% 
             group_by(raca_cor) %>% 
             mutate(count_per=paste0(round(100*count/count_cnae,2), '%'))
 
+df_indir_por_raca_brasil <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, raca_cor)
+
 # Raça agregado a nível UF
 
 # Escolaridade: Brasil
 
-df_escolar_br <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, grau_instrucao_apos_2005)
+df_dir_escolar_br <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, grau_instrucao_apos_2005)
+df_indir_escolar_br <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, grau_instrucao_apos_2005)
 
 # Escolaridade: UF
 
 # Sexo: Brasil
 
-df_sexo_br <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, sexo)
+df_dir_sexo_br <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, sexo)
+df_indir_sexo_br <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, sexo)
 
 # Sexo: UF
+
+### Download CSV files
+
+file.path(getwd(), "2019_rais_microdados_vinculos_direto.csv")
+
+
+write_xlsx(brasil_direto_geral,path =file.path(getwd(), "geral_vinculos_direto_brasil.xlsx"))
+write_xlsx(brasil_indireto_geral,path =file.path(getwd(), "geral_vinculos_indireto_brasil.xlsx"))
+
+write_xlsx(df_dir_regiao_percentual,file.path(getwd(),path = "vinculos_direto_regiao.xlsx"))
+write_xlsx(df_indir_regiao_percentual,file.path(getwd(),path = "vinculos_indireto_regiao.xlsx"))
+
+write_xlsx(df_dir_por_raca_brasil,file.path(getwd(), path ="vinculos_direto_raca_brasil.xlsx"))
+write_xlsx(df_indir_por_raca_brasil,file.path(getwd(), path ="vinculos_indireto_raca_brasil.xlsx"))
+
+write_xlsx(df_dir_escolar_br,file.path(getwd(), path ="vinculos_direto_escolar_brasil.xlsx"))
+write_xlsx(df_indir_escolar_br,file.path(getwd(), path ="vinculos_indireto_escolar_brasil.xlsx"))
+
+write_xlsx(df_dir_sexo_br,file.path(getwd(), path ="vinculos_direto_sexo_brasil.xlsx"))
+write_xlsx(df_indir_sexo_br,file.path(getwd(), path = "vinculos_indireto_sexo_brasil.xlsx"))
+
+
 
 ###### Trash below this point
 

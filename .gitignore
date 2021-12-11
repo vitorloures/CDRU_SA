@@ -1,2 +1,7 @@
 .R*
 *.Rproj
+.Rproj.user
+deprecated_data
+*.xlsx
+.~lock*
+*.csv
