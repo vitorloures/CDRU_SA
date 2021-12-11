@@ -30,19 +30,104 @@ uf_para_regiao <- function(uf) {
   return (regiao)
 }
   
-  agrega_por_cnae_e_var_brasil <- function(input_df, var) {
-      output_df <- input_df %>%
-      group_by(cnae_2_subclasse, {{var}}) %>%
-      summarise(n_trabalhadores = n(), 
-                mean = mean(valor_remuneracao_media), 
-                std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media))  %>% 
-      group_by(cnae_2_subclasse) %>% 
-      mutate(count_cnae = sum(count)) %>% 
-      group_by({{var}}) %>% 
-      mutate(count_per=round(100*count/count_cnae,2))
+agrega_por_cnae_e_var_brasil <- function(input_df, var) {
+  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
+  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
+  # direto, e as CNAEs de emprego indireto serao diferentes
   
+    media_geral <- mean(input_df$valor_remuneracao_media)
+      
+    output_df <- input_df %>%
+      group_by(cnae_2_subclasse,{{var}}) %>% 
+      summarise(n_trabalhadores_segmento = n(), 
+                media_salario = mean(valor_remuneracao_media), 
+                desvio_media = round(100*(media_salario / media_geral - 1),2))
+    
+    output_df <- output_df %>%
+      group_by(cnae_2_subclasse) %>% 
+      mutate(n_cnae = sum(n_trabalhadores_segmento)) %>% 
+      group_by({{var}}) %>% 
+      mutate(percentual_da_cnae=round(100*n_trabalhadores_segmento/n_cnae,2)) %>%
+      select(-n_cnae)
     return (output_df)
-  }
+}
+
+agrega_por_cnae_e_var_uf <- function(input_df, var) {
+  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
+  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
+  # direto, e as CNAEs de emprego indireto serao diferentes
+  
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(sigla_uf, cnae_2_subclasse,{{var}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+
+  return (output_df)
+}
+
+agrega_por_cnae_e_var_regiao <- function(input_df, var) {
+  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
+  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
+  # direto, e as CNAEs de emprego indireto serao diferentes
+  
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(regiao, cnae_2_subclasse,{{var}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  return (output_df)
+}
+  
+agregacao_dupla_por_cnae_brasil <- function(input_df, var1, var2) {
+  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
+  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
+  # direto, e as CNAEs de emprego indireto serao diferentes
+  
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(cnae_2_subclasse,{{var1}}, {{var2}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  output_df <- output_df %>%
+    group_by(cnae_2_subclasse) %>% 
+    mutate(n_cnae = sum(n_trabalhadores_segmento)) %>% 
+    group_by({{var1}}, {{var2}}) %>% 
+    mutate(percentual_da_cnae=round(100*n_trabalhadores_segmento/n_cnae,2)) %>%
+    select(-n_cnae)
+  return (output_df)
+}
+
+agregacao_dupla_por_cnae_regiao <- function(input_df, var1, var2) {
+  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
+  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
+  # direto, e as CNAEs de emprego indireto serao diferentes
+  
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(regiao, cnae_2_subclasse,{{var1}}, {{var2}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  output_df <- output_df %>%
+    group_by(regiao, cnae_2_subclasse) %>% 
+    mutate(n_cnae = sum(n_trabalhadores_segmento)) %>% 
+    group_by({{var1}}, {{var2}}) %>% 
+    mutate(percentual_da_cnae=round(100*n_trabalhadores_segmento/n_cnae,2)) %>%
+    select(-n_cnae)
+  return (output_df)
+}
+
   
   rais_direto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_direto.csv"),
                                    show_col_types = FALSE)
@@ -68,9 +153,9 @@ direto_vinculos_tratado$regiao <- lapply(direto_vinculos_tratado$sigla_uf,
                                          FUN=uf_para_regiao)
 
 indireto_vinculos_tratado <- rais_indireto_vinculos %>% 
-  select(ano, sigla_uf, id_municipio, id_municipio_6_trabalho, valor_remuneracao_media_nominal, cbo_2002, 
-         idade, sexo, raca_cor, nacionalidade, indicador_portador_deficiencia, cnae_2_subclasse,
-         grau_instrucao_1985_2005, grau_instrucao_apos_2005) %>%
+  select(ano, sigla_uf, id_municipio, valor_remuneracao_media_nominal, cbo_2002, 
+         idade, faixa_etaria, sexo, raca_cor, nacionalidade, indicador_portador_deficiencia, tipo_deficiencia,
+         cnae_2_subclasse, grau_instrucao_apos_2005) %>%
   dplyr::filter(ano == 2019 & valor_remuneracao_media_nominal > 0) %>%
   rename(valor_remuneracao_media=valor_remuneracao_media_nominal)
 
@@ -86,121 +171,159 @@ brasil_indireto_geral <- indireto_vinculos_tratado %>%
   group_by(cnae_2_subclasse) %>% 
   summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
 
+write_xlsx(brasil_direto_geral,path =file.path(getwd(), "brasil_direto_geral.xlsx"))
+write_xlsx(brasil_indireto_geral,path =file.path(getwd(), "brasil_indireto_geral.xlsx"))
+
 
 # TABELA 2: Visualização por região geográfica 
 
-df_dir_por_regiao <- direto_vinculos_tratado %>%
-  group_by(cnae_2_subclasse, regiao) %>%
-  summarise(count = n(), 
-            mean = mean(valor_remuneracao_media), 
-            std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media)) 
+brasil_dct_por_regiao <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, regiao)
+brasil_idct_por_regiao <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, regiao)
 
-df_indir_por_regiao <- indireto_vinculos_tratado %>%
-  group_by(cnae_2_subclasse, regiao) %>%
-  summarise(count = n(), 
-            mean = mean(valor_remuneracao_media), 
-            std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media)) 
-
-# Add percentage column
-df_dir_regiao_percentual <- df_dir_por_regiao %>% 
-  group_by(cnae_2_subclasse) %>% 
-  mutate(count_cnae = sum(count)) %>% 
-  group_by(regiao) %>% 
-  mutate(count_per=paste0(round(100*count/count_cnae,2), '%'))
-
-df_indir_regiao_percentual <- df_indir_por_regiao %>% 
-  group_by(cnae_2_subclasse) %>% 
-  mutate(count_cnae = sum(count)) %>% 
-  group_by(regiao) %>% 
-  mutate(count_per=paste0(round(100*count/count_cnae,2), '%'))
-
+write_xlsx(brasil_dct_por_regiao,path =file.path(getwd(), "brasil_direto_regiao.xlsx"))
+write_xlsx(brasil_idct_por_regiao,path =file.path(getwd(), "brasil_indireto_regiao.xlsx"))
+  
+# DEMAIS TABELAS
 # Raça agregado a nível Brasil
 
-df_dir_por_raca_brasil <- direto_vinculos_tratado %>%
-  group_by(cnae_2_subclasse, raca_cor) %>%
-  summarise(count = n(), 
-            mean = mean(valor_remuneracao_media), 
-            std = sd(valor_remuneracao_media) / mean(valor_remuneracao_media))  %>% 
-            group_by(cnae_2_subclasse) %>% 
-            mutate(count_cnae = sum(count)) %>% 
-            group_by(raca_cor) %>% 
-            mutate(count_per=paste0(round(100*count/count_cnae,2), '%'))
+brasil_dct_por_raca <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, raca_cor)
+brasil_idct_por_raca <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, raca_cor)
 
-df_indir_por_raca_brasil <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, raca_cor)
+write_xlsx(brasil_dct_por_raca,path =file.path(getwd(), "brasil_direto_raca.xlsx"))
+write_xlsx(brasil_idct_por_raca,path =file.path(getwd(), "brasil_indireto_raca.xlsx"))
 
 # Raça agregado a nível UF
 
+uf_dct_por_raca <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, raca_cor)
+uf_idct_por_raca <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, raca_cor)
+
+write_xlsx(uf_dct_por_raca,path =file.path(getwd(), "uf_direto_raca.xlsx"))
+write_xlsx(uf_idct_por_raca,path =file.path(getwd(), "uf_indireto_raca.xlsx"))
+
+
 # Escolaridade: Brasil
 
-df_dir_escolar_br <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, grau_instrucao_apos_2005)
-df_indir_escolar_br <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, grau_instrucao_apos_2005)
+brasil_dct_por_escolaridade <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, grau_instrucao_apos_2005)
+brasil_idct_por_escolaridade <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, grau_instrucao_apos_2005)
+
+write_xlsx(brasil_dct_por_escolaridade,path =file.path(getwd(), "brasil_direto_escolaridade.xlsx"))
+write_xlsx(brasil_idct_por_escolaridade,path =file.path(getwd(), "brasil_indireto_escolaridade.xlsx"))
 
 # Escolaridade: UF
 
+uf_dct_por_escolaridade <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, grau_instrucao_apos_2005)
+uf_idct_por_escolaridade <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, grau_instrucao_apos_2005)
+
+write_xlsx(uf_dct_por_escolaridade,path =file.path(getwd(), "uf_direto_escolaridade.xlsx"))
+write_xlsx(uf_idct_por_escolaridade,path =file.path(getwd(), "uf_indireto_escolaridade.xlsx"))
+
 # Sexo: Brasil
 
-df_dir_sexo_br <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, sexo)
-df_indir_sexo_br <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, sexo)
+brasil_dct_por_sexo <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, sexo)
+brasil_idct_por_sexo <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, sexo)
+
+write_xlsx(brasil_dct_por_sexo,path =file.path(getwd(), "brasil_direto_sexo.xlsx"))
+write_xlsx(brasil_idct_por_sexo,path =file.path(getwd(), "brasil_indireto_sexo.xlsx"))
 
 # Sexo: UF
 
-### Download CSV files
+uf_dct_por_sexo <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, sexo)
+uf_idct_por_sexo <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, sexo)
 
-file.path(getwd(), "2019_rais_microdados_vinculos_direto.csv")
+write_xlsx(uf_dct_por_sexo,path =file.path(getwd(), "uf_direto_sexo.xlsx"))
+write_xlsx(uf_idct_por_sexo,path =file.path(getwd(), "uf_indireto_sexo.xlsx"))
 
+# Faixa etária: Brasil
 
-write_xlsx(brasil_direto_geral,path =file.path(getwd(), "geral_vinculos_direto_brasil.xlsx"))
-write_xlsx(brasil_indireto_geral,path =file.path(getwd(), "geral_vinculos_indireto_brasil.xlsx"))
+brasil_dct_por_faixa_etaria <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, faixa_etaria)
+brasil_idct_por_faixa_etaria <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, faixa_etaria)
 
-write_xlsx(df_dir_regiao_percentual,file.path(getwd(),path = "vinculos_direto_regiao.xlsx"))
-write_xlsx(df_indir_regiao_percentual,file.path(getwd(),path = "vinculos_indireto_regiao.xlsx"))
+write_xlsx(brasil_dct_por_faixa_etaria,path =file.path(getwd(), "brasil_direto_faixa_etaria.xlsx"))
+write_xlsx(brasil_idct_por_faixa_etaria,path =file.path(getwd(), "brasil_indireto_faixa_etaria.xlsx"))
 
-write_xlsx(df_dir_por_raca_brasil,file.path(getwd(), path ="vinculos_direto_raca_brasil.xlsx"))
-write_xlsx(df_indir_por_raca_brasil,file.path(getwd(), path ="vinculos_indireto_raca_brasil.xlsx"))
+# Faixa etária: UF
 
-write_xlsx(df_dir_escolar_br,file.path(getwd(), path ="vinculos_direto_escolar_brasil.xlsx"))
-write_xlsx(df_indir_escolar_br,file.path(getwd(), path ="vinculos_indireto_escolar_brasil.xlsx"))
+uf_dct_por_faixa_etaria <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, faixa_etaria)
+uf_idct_por_faixa_etaria <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, faixa_etaria)
 
-write_xlsx(df_dir_sexo_br,file.path(getwd(), path ="vinculos_direto_sexo_brasil.xlsx"))
-write_xlsx(df_indir_sexo_br,file.path(getwd(), path = "vinculos_indireto_sexo_brasil.xlsx"))
+write_xlsx(uf_dct_por_faixa_etaria,path =file.path(getwd(), "uf_direto_faixa_etaria.xlsx"))
+write_xlsx(uf_idct_por_faixa_etaria,path =file.path(getwd(), "uf_indireto_faixa_etaria.xlsx"))
 
+# Portador deficiência: Brasil
 
+brasil_dct_por_deficiencia <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, indicador_portador_deficiencia)
+brasil_idct_por_deficiencia <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, indicador_portador_deficiencia)
 
-###### Trash below this point
+write_xlsx(brasil_dct_por_deficiencia,path =file.path(getwd(), "brasil_direto_deficiencia.xlsx"))
+write_xlsx(brasil_idct_por_deficiencia,path =file.path(getwd(), "brasil_indireto_deficiencia.xlsx"))
 
+# Portador deficiência: Região
 
-rais_uf_2019 <- rais_direto_vinculos %>% 
-  select(-ano, -id_municipio,-vinculo_ativo_3112,-tipo_admissao,
-         -mes_desligamento,-mes_admissao,-motivo_desligamento,
-         -causa_desligamento_1,
-         -causa_desligamento_2,-causa_desligamento_3,
-         -id_municipio_6_trabalho,-quantidade_dias_afastamento,
-         -quantidade_horas_contratadas,
-         -indicador_cei_vinculado,-indicador_trabalho_parcial,
-         -indicador_trabalho_intermitente,
-         -faixa_remuneracao_dezembro_sm,-valor_remuneracao_dezembro_sm,
-         -valor_remuneracao_janeiro_nominal,
-         -valor_remuneracao_fevereiro_nominal,
-         -valor_remuneracao_marco_nominal,
-         -valor_remuneracao_abril_nominal,
-         -valor_remuneracao_maio_nominal,
-         -valor_remuneracao_junho_nominal,
-         -valor_remuneracao_julho_nominal,
-         -valor_remuneracao_agosto_nominal,
-         -valor_remuneracao_setembro_nominal,
-         -valor_remuneracao_outubro_nominal,
-         -valor_remuneracao_novembro_nominal,
-         -valor_remuneracao_dezembro_nominal,
-         -tipo_salario, -valor_salario_contratual, -subatividade_ibge,
-         -cbo_1994,-cbo_2002,-subsetor_ibge,-cnae_1,-cnae_2,
-         -grau_instrucao_1985_2005,
-         -bairros_sp,-bairros_fortaleza,-bairros_rj,-distritos_sp,
-         -regioes_administrativas_df,-indicador_simples) %>% 
-  tibble::view()
+regiao_dct_por_deficiencia  <- agrega_por_cnae_e_var_regiao(direto_vinculos_tratado, indicador_portador_deficiencia)
+regiao_idct_por_deficiencia  <- agrega_por_cnae_e_var_regiao(indireto_vinculos_tratado, indicador_portador_deficiencia)
 
+write_xlsx(regiao_dct_por_deficiencia,path =file.path(getwd(), "regiao_direto_deficiencia.xlsx"))
+write_xlsx(regiao_idct_por_deficiencia,path =file.path(getwd(), "regiao_indireto_deficiencia.xlsx"))
 
-beepr::beep(sound=2)
+# Portador deficiência: UF
 
+uf_dct_por_deficiencia  <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, indicador_portador_deficiencia)
+uf_idct_por_deficiencia  <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, indicador_portador_deficiencia)
+
+write_xlsx(uf_dct_por_deficiencia,path =file.path(getwd(), "uf_direto_deficiencia.xlsx"))
+write_xlsx(uf_idct_por_deficiencia,path =file.path(getwd(), "uf_indireto_deficiencia.xlsx"))
+
+# Tipo de deficiência: Brasil
+
+brasil_dct_por_tipo_deficiencia <- agrega_por_cnae_e_var_brasil(
+  dplyr::filter(direto_vinculos_tratado, tipo_deficiencia>0), tipo_deficiencia)
+brasil_idct_por_tipo_deficiencia <- agrega_por_cnae_e_var_brasil(
+  dplyr::filter(indireto_vinculos_tratado, tipo_deficiencia>0), tipo_deficiencia)
+
+write_xlsx(brasil_dct_por_tipo_deficiencia,path =file.path(getwd(), "brasil_direto_tipo_deficiencia.xlsx"))
+write_xlsx(brasil_idct_por_tipo_deficiencia,path =file.path(getwd(), "brasil_indireto_tipo_deficiencia.xlsx"))
+
+# Tipo de deficiência: Região
+
+regiao_dct_por_tipo_deficiencia <- agrega_por_cnae_e_var_regiao(
+  dplyr::filter(direto_vinculos_tratado, tipo_deficiencia>0), tipo_deficiencia)
+regiao_idct_por_tipo_deficiencia <- agrega_por_cnae_e_var_regiao(
+  dplyr::filter(indireto_vinculos_tratado, tipo_deficiencia>0), tipo_deficiencia)
+
+write_xlsx(regiao_dct_por_tipo_deficiencia,path =file.path(getwd(), "regiao_direto_tipo_deficiencia.xlsx"))
+write_xlsx(regiao_idct_por_tipo_deficiencia,path =file.path(getwd(), "regiao_indireto_tipo_deficiencia.xlsx"))
+
+# Sexo e Raça: Brasil
+
+brasil_dct_sexo_raca <- agregacao_dupla_por_cnae_brasil(direto_vinculos_tratado, sexo, raca_cor)
+brasil_idct_sexo_raca <- agregacao_dupla_por_cnae_brasil(indireto_vinculos_tratado, sexo, raca_cor)
+
+write_xlsx(brasil_dct_sexo_raca, path =file.path(getwd(), "brasil_direto_sexo_raca.xlsx"))
+write_xlsx(brasil_idct_sexo_raca, path =file.path(getwd(), "brasil_indireto_sexo_raca.xlsx"))
+
+# Sexo e Raça: Região
+
+regiao_dct_sexo_raca <- agregacao_dupla_por_cnae_regiao(direto_vinculos_tratado, sexo, raca_cor)
+regiao_idct_sexo_raca <- agregacao_dupla_por_cnae_regiao(indireto_vinculos_tratado, sexo, raca_cor)
+
+write_xlsx(regiao_dct_sexo_raca, path =file.path(getwd(), "regiao_direto_sexo_raca.xlsx"))
+write_xlsx(regiao_idct_sexo_raca, path =file.path(getwd(), "regiao_indireto_sexo_raca.xlsx"))
+
+# Sexo e Escolaridade: Brasil
+
+brasil_dct_sexo_escolaridade <- agregacao_dupla_por_cnae_brasil(direto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
+brasil_idct_sexo_escolaridade <- agregacao_dupla_por_cnae_brasil(indireto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
+
+write_xlsx(brasil_dct_sexo_escolaridade, path =file.path(getwd(), "brasil_direto_sexo_escolaridade.xlsx"))
+write_xlsx(brasil_idct_sexo_escolaridade, path =file.path(getwd(), "brasil_indireto_sexo_escolaridade.xlsx"))
+
+# Sexo e Escolaridade: Brasil
+
+regiao_dct_sexo_escolaridade <- agregacao_dupla_por_cnae_regiao(direto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
+regiao_idct_sexo_escolaridade <- agregacao_dupla_por_cnae_regiao(indireto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
+
+write_xlsx(regiao_dct_sexo_escolaridade, path =file.path(getwd(), "regiao_direto_sexo_escolaridade.xlsx"))
+write_xlsx(regiao_idct_sexo_escolaridade, path =file.path(getwd(), "regiao_indireto_sexo_escolaridade.xlsx"))
 
 
 # Isso é tudo pessoal:
