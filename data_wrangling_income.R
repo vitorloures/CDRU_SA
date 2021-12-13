@@ -171,107 +171,67 @@ brasil_indireto_geral <- indireto_vinculos_tratado %>%
   group_by(cnae_2_subclasse) %>% 
   summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
 
-write_xlsx(brasil_direto_geral,path =file.path(getwd(), "brasil_direto_geral.xlsx"))
-write_xlsx(brasil_indireto_geral,path =file.path(getwd(), "brasil_indireto_geral.xlsx"))
-
 
 # TABELA 2: Visualização por região geográfica 
 
 brasil_dct_por_regiao <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, regiao)
 brasil_idct_por_regiao <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, regiao)
 
-write_xlsx(brasil_dct_por_regiao,path =file.path(getwd(), "brasil_direto_regiao.xlsx"))
-write_xlsx(brasil_idct_por_regiao,path =file.path(getwd(), "brasil_indireto_regiao.xlsx"))
-  
 # DEMAIS TABELAS
 # Raça agregado a nível Brasil
 
 brasil_dct_por_raca <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, raca_cor)
 brasil_idct_por_raca <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, raca_cor)
 
-write_xlsx(brasil_dct_por_raca,path =file.path(getwd(), "brasil_direto_raca.xlsx"))
-write_xlsx(brasil_idct_por_raca,path =file.path(getwd(), "brasil_indireto_raca.xlsx"))
-
 # Raça agregado a nível UF
 
 uf_dct_por_raca <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, raca_cor)
 uf_idct_por_raca <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, raca_cor)
-
-write_xlsx(uf_dct_por_raca,path =file.path(getwd(), "uf_direto_raca.xlsx"))
-write_xlsx(uf_idct_por_raca,path =file.path(getwd(), "uf_indireto_raca.xlsx"))
-
 
 # Escolaridade: Brasil
 
 brasil_dct_por_escolaridade <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, grau_instrucao_apos_2005)
 brasil_idct_por_escolaridade <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, grau_instrucao_apos_2005)
 
-write_xlsx(brasil_dct_por_escolaridade,path =file.path(getwd(), "brasil_direto_escolaridade.xlsx"))
-write_xlsx(brasil_idct_por_escolaridade,path =file.path(getwd(), "brasil_indireto_escolaridade.xlsx"))
-
 # Escolaridade: UF
 
 uf_dct_por_escolaridade <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, grau_instrucao_apos_2005)
 uf_idct_por_escolaridade <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, grau_instrucao_apos_2005)
-
-write_xlsx(uf_dct_por_escolaridade,path =file.path(getwd(), "uf_direto_escolaridade.xlsx"))
-write_xlsx(uf_idct_por_escolaridade,path =file.path(getwd(), "uf_indireto_escolaridade.xlsx"))
 
 # Sexo: Brasil
 
 brasil_dct_por_sexo <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, sexo)
 brasil_idct_por_sexo <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, sexo)
 
-write_xlsx(brasil_dct_por_sexo,path =file.path(getwd(), "brasil_direto_sexo.xlsx"))
-write_xlsx(brasil_idct_por_sexo,path =file.path(getwd(), "brasil_indireto_sexo.xlsx"))
-
 # Sexo: UF
 
 uf_dct_por_sexo <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, sexo)
 uf_idct_por_sexo <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, sexo)
-
-write_xlsx(uf_dct_por_sexo,path =file.path(getwd(), "uf_direto_sexo.xlsx"))
-write_xlsx(uf_idct_por_sexo,path =file.path(getwd(), "uf_indireto_sexo.xlsx"))
 
 # Faixa etária: Brasil
 
 brasil_dct_por_faixa_etaria <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, faixa_etaria)
 brasil_idct_por_faixa_etaria <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, faixa_etaria)
 
-write_xlsx(brasil_dct_por_faixa_etaria,path =file.path(getwd(), "brasil_direto_faixa_etaria.xlsx"))
-write_xlsx(brasil_idct_por_faixa_etaria,path =file.path(getwd(), "brasil_indireto_faixa_etaria.xlsx"))
-
 # Faixa etária: UF
 
 uf_dct_por_faixa_etaria <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, faixa_etaria)
 uf_idct_por_faixa_etaria <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, faixa_etaria)
-
-write_xlsx(uf_dct_por_faixa_etaria,path =file.path(getwd(), "uf_direto_faixa_etaria.xlsx"))
-write_xlsx(uf_idct_por_faixa_etaria,path =file.path(getwd(), "uf_indireto_faixa_etaria.xlsx"))
 
 # Portador deficiência: Brasil
 
 brasil_dct_por_deficiencia <- agrega_por_cnae_e_var_brasil(direto_vinculos_tratado, indicador_portador_deficiencia)
 brasil_idct_por_deficiencia <- agrega_por_cnae_e_var_brasil(indireto_vinculos_tratado, indicador_portador_deficiencia)
 
-write_xlsx(brasil_dct_por_deficiencia,path =file.path(getwd(), "brasil_direto_deficiencia.xlsx"))
-write_xlsx(brasil_idct_por_deficiencia,path =file.path(getwd(), "brasil_indireto_deficiencia.xlsx"))
-
 # Portador deficiência: Região
 
 regiao_dct_por_deficiencia  <- agrega_por_cnae_e_var_regiao(direto_vinculos_tratado, indicador_portador_deficiencia)
 regiao_idct_por_deficiencia  <- agrega_por_cnae_e_var_regiao(indireto_vinculos_tratado, indicador_portador_deficiencia)
 
-write_xlsx(regiao_dct_por_deficiencia,path =file.path(getwd(), "regiao_direto_deficiencia.xlsx"))
-write_xlsx(regiao_idct_por_deficiencia,path =file.path(getwd(), "regiao_indireto_deficiencia.xlsx"))
-
 # Portador deficiência: UF
 
 uf_dct_por_deficiencia  <- agrega_por_cnae_e_var_uf(direto_vinculos_tratado, indicador_portador_deficiencia)
 uf_idct_por_deficiencia  <- agrega_por_cnae_e_var_uf(indireto_vinculos_tratado, indicador_portador_deficiencia)
-
-write_xlsx(uf_dct_por_deficiencia,path =file.path(getwd(), "uf_direto_deficiencia.xlsx"))
-write_xlsx(uf_idct_por_deficiencia,path =file.path(getwd(), "uf_indireto_deficiencia.xlsx"))
 
 # Tipo de deficiência: Brasil
 
@@ -280,9 +240,6 @@ brasil_dct_por_tipo_deficiencia <- agrega_por_cnae_e_var_brasil(
 brasil_idct_por_tipo_deficiencia <- agrega_por_cnae_e_var_brasil(
   dplyr::filter(indireto_vinculos_tratado, tipo_deficiencia>0), tipo_deficiencia)
 
-write_xlsx(brasil_dct_por_tipo_deficiencia,path =file.path(getwd(), "brasil_direto_tipo_deficiencia.xlsx"))
-write_xlsx(brasil_idct_por_tipo_deficiencia,path =file.path(getwd(), "brasil_indireto_tipo_deficiencia.xlsx"))
-
 # Tipo de deficiência: Região
 
 regiao_dct_por_tipo_deficiencia <- agrega_por_cnae_e_var_regiao(
@@ -290,40 +247,25 @@ regiao_dct_por_tipo_deficiencia <- agrega_por_cnae_e_var_regiao(
 regiao_idct_por_tipo_deficiencia <- agrega_por_cnae_e_var_regiao(
   dplyr::filter(indireto_vinculos_tratado, tipo_deficiencia>0), tipo_deficiencia)
 
-write_xlsx(regiao_dct_por_tipo_deficiencia,path =file.path(getwd(), "regiao_direto_tipo_deficiencia.xlsx"))
-write_xlsx(regiao_idct_por_tipo_deficiencia,path =file.path(getwd(), "regiao_indireto_tipo_deficiencia.xlsx"))
-
 # Sexo e Raça: Brasil
 
 brasil_dct_sexo_raca <- agregacao_dupla_por_cnae_brasil(direto_vinculos_tratado, sexo, raca_cor)
 brasil_idct_sexo_raca <- agregacao_dupla_por_cnae_brasil(indireto_vinculos_tratado, sexo, raca_cor)
-
-write_xlsx(brasil_dct_sexo_raca, path =file.path(getwd(), "brasil_direto_sexo_raca.xlsx"))
-write_xlsx(brasil_idct_sexo_raca, path =file.path(getwd(), "brasil_indireto_sexo_raca.xlsx"))
 
 # Sexo e Raça: Região
 
 regiao_dct_sexo_raca <- agregacao_dupla_por_cnae_regiao(direto_vinculos_tratado, sexo, raca_cor)
 regiao_idct_sexo_raca <- agregacao_dupla_por_cnae_regiao(indireto_vinculos_tratado, sexo, raca_cor)
 
-write_xlsx(regiao_dct_sexo_raca, path =file.path(getwd(), "regiao_direto_sexo_raca.xlsx"))
-write_xlsx(regiao_idct_sexo_raca, path =file.path(getwd(), "regiao_indireto_sexo_raca.xlsx"))
-
 # Sexo e Escolaridade: Brasil
 
 brasil_dct_sexo_escolaridade <- agregacao_dupla_por_cnae_brasil(direto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
 brasil_idct_sexo_escolaridade <- agregacao_dupla_por_cnae_brasil(indireto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
 
-write_xlsx(brasil_dct_sexo_escolaridade, path =file.path(getwd(), "brasil_direto_sexo_escolaridade.xlsx"))
-write_xlsx(brasil_idct_sexo_escolaridade, path =file.path(getwd(), "brasil_indireto_sexo_escolaridade.xlsx"))
-
 # Sexo e Escolaridade: Brasil
 
 regiao_dct_sexo_escolaridade <- agregacao_dupla_por_cnae_regiao(direto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
 regiao_idct_sexo_escolaridade <- agregacao_dupla_por_cnae_regiao(indireto_vinculos_tratado, sexo, grau_instrucao_apos_2005)
-
-write_xlsx(regiao_dct_sexo_escolaridade, path =file.path(getwd(), "regiao_direto_sexo_escolaridade.xlsx"))
-write_xlsx(regiao_idct_sexo_escolaridade, path =file.path(getwd(), "regiao_indireto_sexo_escolaridade.xlsx"))
 
 
 ### Gera arquivos xlsx
