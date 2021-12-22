@@ -1,7 +1,7 @@
 ### Limpeza dos dados ###
 
 library(readxl)
-library(writexl)
+library(openxlsx)
 library(tidyverse)
 library(magrittr, include.only = '%>%')
 library(tibble)
@@ -141,7 +141,6 @@ agregacao_dupla_por_cnae_regiao <- function(input_df, var1, var2) {
   rais_indireto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_indireto.csv"),
                                    show_col_types = FALSE)
 
-# TODO: Analisar dados valor_remuneracao_media_nominal == 0
 # Filtra apenas linhas e colunas necessárias para geração das tabelas a seguir
 direto_vinculos_tratado <- rais_direto_vinculos %>% 
     select(ano, sigla_uf, id_municipio, valor_remuneracao_media, cbo_2002, 
@@ -169,6 +168,25 @@ brasil_direto_geral <- direto_vinculos_tratado %>%
 
 brasil_indireto_geral <- indireto_vinculos_tratado %>%
   group_by(cnae_2_subclasse) %>% 
+  summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+
+
+# Agrupamento por região
+regiao_direto_geral <- direto_vinculos_tratado %>%
+  group_by(regiao) %>% 
+  summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+
+regiao_indireto_geral <- indireto_vinculos_tratado %>%
+  group_by(regiao) %>% 
+  summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+
+# Agrupamento por UF
+uf_direto_geral <- direto_vinculos_tratado %>%
+  group_by(sigla_uf) %>% 
+  summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+
+uf_indireto_geral <- indireto_vinculos_tratado %>%
+  group_by(sigla_uf) %>% 
   summarise(numero_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
 
 
@@ -270,58 +288,122 @@ regiao_idct_sexo_escolaridade <- agregacao_dupla_por_cnae_regiao(indireto_vincul
 
 ### Gera arquivos xlsx
 
-sheets <- list("geral" = brasil_direto_geral, "regiao" = brasil_dct_por_regiao, 
-               "raca" = brasil_dct_por_raca, "tipo_deficiencia" = brasil_dct_por_tipo_deficiencia,
-               "sexo_raca" = brasil_dct_sexo_raca,
-               "sexo_escolaridade" = brasil_dct_sexo_escolaridade,
-               "escolaridade" = brasil_dct_por_escolaridade,
-               "sexo" = brasil_dct_por_sexo,
-               "faixa_etaria" = brasil_dct_por_faixa_etaria,
-               "deficiencia" = brasil_dct_por_deficiencia) 
-write_xlsx(sheets, file.path(getwd(), "brasil_direto.xlsx"))
 
-sheets <- list("geral" = brasil_indireto_geral, "regiao" = brasil_idct_por_regiao, 
-               "raca" = brasil_idct_por_raca, "tipo_deficiencia" = brasil_idct_por_tipo_deficiencia,
-               "sexo_raca" = brasil_idct_sexo_raca,
-               "sexo_escolaridade" = brasil_idct_sexo_escolaridade,
-               "escolaridade" = brasil_idct_por_escolaridade,
-               "sexo" = brasil_idct_por_sexo,
-               "faixa_etaria" = brasil_idct_por_faixa_etaria,
-               "deficiencia" = brasil_idct_por_deficiencia) 
-write_xlsx(sheets, file.path(getwd(), "brasil_indireto.xlsx"))
+write.xlsx(list(geral = brasil_direto_geral, 
+                regiao = brasil_dct_por_regiao, 
+                raca = brasil_dct_por_raca, 
+                tipo_deficiencia = brasil_dct_por_tipo_deficiencia,
+                sexo_raca = brasil_dct_sexo_raca,
+                sexo_escolaridade = brasil_dct_sexo_escolaridade,
+                escolaridade = brasil_dct_por_escolaridade,
+                sexo = brasil_dct_por_sexo,
+                faixa_etaria = brasil_dct_por_faixa_etaria,
+                deficiencia = brasil_dct_por_deficiencia),
+           file.path(getwd(), "brasil_direto.xlsx"), 
+           overwrite = TRUE)
 
-sheets <- list(
-  "raca" = uf_dct_por_raca,
-  "escolaridade" = uf_dct_por_escolaridade,
-  "sexo" = brasil_dct_por_sexo,
-  "faixa_etaria" = uf_dct_por_faixa_etaria,
-  "deficiencia" = uf_dct_por_deficiencia) 
-write_xlsx(sheets, file.path(getwd(), "uf_direto.xlsx"))
+write.xlsx(list(geral = brasil_indireto_geral, 
+                regiao = brasil_idct_por_regiao, 
+                raca = brasil_idct_por_raca, 
+                tipo_deficiencia = brasil_idct_por_tipo_deficiencia,
+                sexo_raca = brasil_idct_sexo_raca,
+                sexo_escolaridade = brasil_idct_sexo_escolaridade,
+                escolaridade = brasil_idct_por_escolaridade,
+                sexo = brasil_idct_por_sexo,
+                faixa_etaria = brasil_idct_por_faixa_etaria,
+                deficiencia = brasil_idct_por_deficiencia),
+          file.path(getwd(), "brasil_indireto.xlsx"),
+          overwrite = TRUE)
 
-sheets <- list(
-               "raca" = uf_idct_por_raca,
-               "escolaridade" = uf_idct_por_escolaridade,
-               "sexo" = brasil_idct_por_sexo,
-               "faixa_etaria" = uf_idct_por_faixa_etaria,
-               "deficiencia" = uf_idct_por_deficiencia) 
-write_xlsx(sheets, file.path(getwd(), "uf_indireto.xlsx"))
+write.xlsx(list(
+  geral = uf_direto_geral,
+  raca = uf_dct_por_raca,
+  escolaridade = uf_dct_por_escolaridade,
+  sexo = uf_dct_por_sexo,
+  faixa_etaria = uf_dct_por_faixa_etaria,
+  deficiencia = uf_dct_por_deficiencia),
+  file.path(getwd(), "uf_direto.xlsx"),
+  overwrite = TRUE)
+
+write.xlsx(list(
+               geral = uf_indireto_geral,
+               raca = uf_idct_por_raca,
+               escolaridade = uf_idct_por_escolaridade,
+               sexo = uf_idct_por_sexo,
+               faixa_etaria = uf_idct_por_faixa_etaria,
+               deficiencia = uf_idct_por_deficiencia), 
+           file.path(getwd(), "uf_indireto.xlsx"), 
+           overwrite = TRUE)
+
+write.xlsx(list(
+  geral = regiao_direto_geral,
+  sexo_escolaridade = regiao_dct_sexo_escolaridade,
+  sexo_raca = regiao_dct_sexo_raca,
+  tipo_deficiencia = regiao_dct_por_tipo_deficiencia, 
+  deficiencia = regiao_dct_por_deficiencia), 
+  file.path(getwd(), "regiao_direto.xlsx"), 
+  overwrite = TRUE)
+
+write.xlsx(list(
+  geral = regiao_indireto_geral,
+  sexo_escolaridade = regiao_idct_sexo_escolaridade,
+  sexo_raca = regiao_idct_sexo_raca,
+  tipo_deficiencia = regiao_idct_por_tipo_deficiencia, 
+  deficiencia = regiao_idct_por_deficiencia), 
+  file.path(getwd(), "regiao_indireto.xlsx"),
+  overwrite = TRUE)
 
 
-sheets <- list(
-  "sexo_escolaridade" = regiao_dct_sexo_escolaridade,
-  "sexo_raca" = regiao_dct_sexo_raca,
-  "tipo_deficiencia" = regiao_dct_por_tipo_deficiencia, 
-  "deficiencia" = regiao_dct_por_deficiencia) 
-write_xlsx(sheets, file.path(getwd(), "regiao_direto.xlsx"))
+###### Processa dados de Estabelecimentos ####
 
-sheets <- list(
-  "sexo_escolaridade" = regiao_idct_sexo_escolaridade,
-  "sexo_raca" = regiao_idct_sexo_raca,
-  "tipo_deficiencia" = regiao_idct_por_tipo_deficiencia, 
-  "deficiencia" = regiao_idct_por_deficiencia) 
+direto_estabelecimentos_tratado <- rais_direto_estabele %>% 
+  select(ano, sigla_uf, 
+         quantidade_vinculos_ativos, quantidade_vinculos_ativos, quantidade_vinculos_estatutarios, 
+         tamanho, tipo, cnae_2_subclasse
+         ) %>%
+  dplyr::filter(ano == 2019)  
 
-write_xlsx(sheets, file.path(getwd(), "regiao_indireto.xlsx"))
+direto_estabelecimentos_tratado$regiao <- lapply(direto_estabelecimentos_tratado$sigla_uf, 
+                                         FUN=uf_para_regiao)
+
+############
+
+brasil_numero_estabelecimentos_dct <- direto_estabelecimentos_tratado %>%
+  group_by(cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n()) 
+
+regiao_numero_estabelecimentos_dct <- direto_estabelecimentos_tratado %>%
+  group_by(regiao, cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n()) 
+
+uf_numero_estabelecimentos_dct <- direto_estabelecimentos_tratado %>%
+  group_by(sigla_uf, cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n()) 
+
+############
+
+indireto_estabelecimentos_tratado <- rais_indireto_estabele %>% 
+  select(ano, sigla_uf, 
+         quantidade_vinculos_ativos, quantidade_vinculos_ativos, quantidade_vinculos_estatutarios, 
+         tamanho_estabelecimento, tipo_estabelecimento, cnae_2_subclasse) %>%
+  dplyr::filter(ano == 2019)  
+
+indireto_estabelecimentos_tratado$regiao <- lapply(indireto_estabelecimentos_tratado$sigla_uf, 
+                                                 FUN=uf_para_regiao)
+
+brasil_numero_estabelecimentos_idct <- indireto_estabelecimentos_tratado %>%
+  group_by(cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n()) 
+
+regiao_numero_estabelecimentos_idct <- indireto_estabelecimentos_tratado %>%
+  group_by(regiao, cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n()) 
+
+uf_numero_estabelecimentos_idct <- indireto_estabelecimentos_tratado %>%
+  group_by(sigla_uf, cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n()) 
 
 
 # Isso é tudo pessoal:
+
 beepr::beep(sound=3)
