@@ -139,7 +139,8 @@ agregacao_dupla_por_cnae_regiao <- function(input_df, var1, var2) {
                                    show_col_types = FALSE)
   
   rais_indireto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_indireto.csv"),
-                                   show_col_types = FALSE)
+                                   show_col_types = FALSE) %>%
+                            rename(tamanho = tamanho_estabelecimento)
 
 # Filtra apenas linhas e colunas necessárias para geração das tabelas a seguir
 direto_vinculos_tratado <- rais_direto_vinculos %>% 
@@ -357,9 +358,9 @@ write.xlsx(list(
 ###### Processa dados de Estabelecimentos ####
 
 direto_estabelecimentos_tratado <- rais_direto_estabele %>% 
-  select(ano, sigla_uf, 
-         quantidade_vinculos_ativos, quantidade_vinculos_ativos, quantidade_vinculos_estatutarios, 
-         tamanho, tipo, cnae_2_subclasse
+  select(ano, sigla_uf, id_municipio,
+         quantidade_vinculos_ativos, quantidade_vinculos_clt, quantidade_vinculos_estatutarios, 
+         natureza_juridica, tamanho, cnae_2_subclasse
          ) %>%
   dplyr::filter(ano == 2019)  
 
@@ -370,22 +371,30 @@ direto_estabelecimentos_tratado$regiao <- lapply(direto_estabelecimentos_tratado
 
 brasil_numero_estabelecimentos_dct <- direto_estabelecimentos_tratado %>%
   group_by(cnae_2_subclasse) %>% 
-  summarise(n_estabelecimentos = n()) 
+  summarise(n_estabelecimentos = n(), 
+            quantidade_vinculos_ativos) 
 
 regiao_numero_estabelecimentos_dct <- direto_estabelecimentos_tratado %>%
-  group_by(regiao, cnae_2_subclasse) %>% 
-  summarise(n_estabelecimentos = n()) 
+  group_by(regiao, tamanho, natureza_juridica, cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n(), 
+            quantidade_vinculos_ativos) 
 
 uf_numero_estabelecimentos_dct <- direto_estabelecimentos_tratado %>%
-  group_by(sigla_uf, cnae_2_subclasse) %>% 
-  summarise(n_estabelecimentos = n()) 
+  group_by(sigla_uf, tamanho, natureza_juridica, cnae_2_subclasse) %>% 
+  summarise(n_estabelecimentos = n(), 
+            quantidade_vinculos_ativos) 
+
+municipio_numero_estabelecimentos_dct <- direto_estabelecimentos_tratado %>%
+  group_by(id_municipio, cnae_2_subclasse, natureza_juridica, tamanho) %>% 
+  summarise(n_estabelecimentos = n(), 
+            quantidade_vinculos_ativos) 
 
 ############
 
 indireto_estabelecimentos_tratado <- rais_indireto_estabele %>% 
-  select(ano, sigla_uf, 
-         quantidade_vinculos_ativos, quantidade_vinculos_ativos, quantidade_vinculos_estatutarios, 
-         tamanho_estabelecimento, tipo_estabelecimento, cnae_2_subclasse) %>%
+  select(ano, sigla_uf, id_municipio,
+         quantidade_vinculos_ativos, quantidade_vinculos_clt, quantidade_vinculos_estatutarios, 
+         natureza_juridica, tamanho, cnae_2_subclasse) %>%
   dplyr::filter(ano == 2019)  
 
 indireto_estabelecimentos_tratado$regiao <- lapply(indireto_estabelecimentos_tratado$sigla_uf, 
@@ -396,13 +405,45 @@ brasil_numero_estabelecimentos_idct <- indireto_estabelecimentos_tratado %>%
   summarise(n_estabelecimentos = n()) 
 
 regiao_numero_estabelecimentos_idct <- indireto_estabelecimentos_tratado %>%
-  group_by(regiao, cnae_2_subclasse) %>% 
-  summarise(n_estabelecimentos = n()) 
+  group_by(regiao, cnae_2_subclasse, natureza_juridica, tamanho) %>% 
+  summarise(n_estabelecimentos = n(), 
+            quantidade_vinculos_ativos) 
 
 uf_numero_estabelecimentos_idct <- indireto_estabelecimentos_tratado %>%
-  group_by(sigla_uf, cnae_2_subclasse) %>% 
-  summarise(n_estabelecimentos = n()) 
+  group_by(sigla_uf, cnae_2_subclasse, natureza_juridica, tamanho) %>% 
+  summarise(n_estabelecimentos = n(), 
+            quantidade_vinculos_ativos) 
 
+municipio_numero_estabelecimentos_idct <- indireto_estabelecimentos_tratado %>%
+  group_by(id_municipio, cnae_2_subclasse, natureza_juridica, tamanho) %>% 
+  summarise(n_estabelecimentos = n(), 
+            quantidade_vinculos_ativos) 
+
+##### Concatena no DF nome da cidade, a partir do código IBGE
+
+codigo_municipio_ibge <- read_excel(path = file.path(getwd(), "RELATORIO_DTB_BRASIL_MUNICIPIO.xls")) %>%
+  select("Código Município Completo", Nome_Município) %>%
+  rename(id_municipio = "Código Município Completo", municipio = Nome_Município)
+
+municipio_numero_estabelecimentos_dct <- merge(municipio_numero_estabelecimentos_dct, codigo_municipio_ibge, by="id_municipio")
+
+municipio_numero_estabelecimentos_idct <- merge(municipio_numero_estabelecimentos_idct, codigo_municipio_ibge, by="id_municipio")
+
+
+
+write.xlsx(list(geral = brasil_numero_estabelecimentos_dct, 
+                regiao = regiao_numero_estabelecimentos_dct, 
+                uf = uf_numero_estabelecimentos_dct, 
+                municipio = municipio_numero_estabelecimentos_dct),
+           file.path(getwd(), "estabelecimento_direto.xlsx"), 
+           overwrite = TRUE)
+
+write.xlsx(list(geral = brasil_numero_estabelecimentos_idct, 
+                regiao = regiao_numero_estabelecimentos_idct, 
+                uf = uf_numero_estabelecimentos_idct, 
+                municipio = municipio_numero_estabelecimentos_idct),
+           file.path(getwd(), "estabelecimento_indireto.xlsx"), 
+           overwrite = TRUE)
 
 # Isso é tudo pessoal:
 
