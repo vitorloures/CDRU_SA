@@ -156,6 +156,17 @@ regiao_dct_sexo_escolaridade <- agregacao_dupla_por_cnae_regiao(biogas_rais_vinc
 ### Gera arquivos xlsx
 
 
+df_names <- c('brasil_geral', 'brasil_dct_por_regiao', 'brasil_dct_por_raca', 'brasil_dct_por_tipo_deficiencia', 'brasil_dct_sexo_raca', 
+'brasil_dct_sexo_escolaridade', 'brasil_dct_por_escolaridade', 'brasil_dct_por_sexo', 'brasil_dct_por_faixa_etaria',
+'brasil_dct_por_deficiencia')
+
+for (var_name in df_names) {
+  df <- get(var_name)
+  df$nome_grupo <- lapply(df$cnae_2_subclasse, 
+                          FUN=get_grupo) 
+  assign(var_name, df)
+}
+
 write.xlsx(list(geral = brasil_geral, 
                 regiao = brasil_dct_por_regiao, 
                 raca = brasil_dct_por_raca, 
@@ -189,9 +200,6 @@ write.xlsx(list(
   deficiencia = regiao_dct_por_deficiencia), 
   file.path(getwd(), "regiao_biogas_biometano.xlsx"), 
   overwrite = TRUE)
-
-
-
 
 
 ###### Processa dados de Estabelecimentos ####
@@ -255,6 +263,17 @@ uf_numero_estabelecimentos_tamanho_dct <- biogas_rais_estabele %>%
   group_by(sigla_uf, cnae_2_subclasse, descricao, tamanho, tamanho_desc) %>% 
   summarise(n_estabelecimentos = n()) 
 
+# Adiciona nome do grupo, a partir da CNAE
+df_names <- c('brasil_numero_estabelecimentos_dct', 'brasil_numero_vinculos_dct', 'brasil_numero_estabelecimentos_tamanho_dct',
+              'regiao_numero_estabelecimentos_dct', 'regiao_numero_vinculos_dct', 'regiao_numero_estabelecimentos_tamanho_dct',
+              'uf_numero_estabelecimentos_dct', 'uf_numero_vinculos_dct', 'uf_numero_estabelecimentos_tamanho_dct')
+
+for (var_name in df_names) {
+  df <- get(var_name)
+  df$nome_grupo <- lapply(df$cnae_2_subclasse, 
+                          FUN=get_grupo) 
+  assign(var_name, df)
+}
 
 write.xlsx(list(brasil_estab = brasil_numero_estabelecimentos_dct, 
                 brasil_vinc = brasil_numero_vinculos_dct, 
