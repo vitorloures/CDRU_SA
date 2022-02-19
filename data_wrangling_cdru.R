@@ -5,140 +5,17 @@ library(openxlsx)
 library(tidyverse)
 library(magrittr, include.only = '%>%')
 library(tibble)
-
-uf_para_regiao <- function(uf) {
-  norte <- c("AM", "AC", "PA", "TO", "RO", "RR", "AP")
-  nordeste <- c("MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA")
-  centro_oeste <- c("MT", "MS", "GO", "DF")
-  sul <- c("RS", "SC", "PR")
-  sudeste <- c("MG", "SP", "RJ", "ES")
-  if (uf %in% norte) {
-    regiao <- "NORTE"
-  }
-  else if(uf %in% nordeste){
-    regiao <- "NORDESTE" 
-  }
-  else if(uf %in% sudeste){
-    regiao <- "SUDESTE"
-  }
-  else if(uf %in% sul){
-    regiao <- "SUL"
-  }
-  else if(uf %in% centro_oeste){
-    regiao <- "CENTRO OESTE"
-  }
-  return (regiao)
-}
   
-agrega_por_cnae_e_var_brasil <- function(input_df, var) {
-  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
-  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
-  # direto, e as CNAEs de emprego indireto serao diferentes
-  
-    media_geral <- mean(input_df$valor_remuneracao_media)
-      
-    output_df <- input_df %>%
-      group_by(cnae_2_subclasse,{{var}}) %>% 
-      summarise(n_trabalhadores_segmento = n(), 
-                media_salario = mean(valor_remuneracao_media), 
-                desvio_media = round(100*(media_salario / media_geral - 1),2))
-    
-    output_df <- output_df %>%
-      group_by(cnae_2_subclasse) %>% 
-      mutate(n_cnae = sum(n_trabalhadores_segmento)) %>% 
-      group_by({{var}}) %>% 
-      mutate(percentual_da_cnae=round(100*n_trabalhadores_segmento/n_cnae,2)) %>%
-      select(-n_cnae)
-    return (output_df)
-}
-
-agrega_por_cnae_e_var_uf <- function(input_df, var) {
-  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
-  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
-  # direto, e as CNAEs de emprego indireto serao diferentes
-  
-  media_geral <- mean(input_df$valor_remuneracao_media)
-  
-  output_df <- input_df %>%
-    group_by(sigla_uf, cnae_2_subclasse,{{var}}) %>% 
-    summarise(n_trabalhadores_segmento = n(), 
-              media_salario = mean(valor_remuneracao_media), 
-              desvio_media = round(100*(media_salario / media_geral - 1),2))
-
-  return (output_df)
-}
-
-agrega_por_cnae_e_var_regiao <- function(input_df, var) {
-  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
-  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
-  # direto, e as CNAEs de emprego indireto serao diferentes
-  
-  media_geral <- mean(input_df$valor_remuneracao_media)
-  
-  output_df <- input_df %>%
-    group_by(regiao, cnae_2_subclasse,{{var}}) %>% 
-    summarise(n_trabalhadores_segmento = n(), 
-              media_salario = mean(valor_remuneracao_media), 
-              desvio_media = round(100*(media_salario / media_geral - 1),2))
-  
-  return (output_df)
-}
-  
-agregacao_dupla_por_cnae_brasil <- function(input_df, var1, var2) {
-  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
-  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
-  # direto, e as CNAEs de emprego indireto serao diferentes
-  
-  media_geral <- mean(input_df$valor_remuneracao_media)
-  
-  output_df <- input_df %>%
-    group_by(cnae_2_subclasse,{{var1}}, {{var2}}) %>% 
-    summarise(n_trabalhadores_segmento = n(), 
-              media_salario = mean(valor_remuneracao_media), 
-              desvio_media = round(100*(media_salario / media_geral - 1),2))
-  
-  output_df <- output_df %>%
-    group_by(cnae_2_subclasse) %>% 
-    mutate(n_cnae = sum(n_trabalhadores_segmento)) %>% 
-    group_by({{var1}}, {{var2}}) %>% 
-    mutate(percentual_da_cnae=round(100*n_trabalhadores_segmento/n_cnae,2)) %>%
-    select(-n_cnae)
-  return (output_df)
-}
-
-agregacao_dupla_por_cnae_regiao <- function(input_df, var1, var2) {
-  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
-  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
-  # direto, e as CNAEs de emprego indireto serao diferentes
-  
-  media_geral <- mean(input_df$valor_remuneracao_media)
-  
-  output_df <- input_df %>%
-    group_by(regiao, cnae_2_subclasse,{{var1}}, {{var2}}) %>% 
-    summarise(n_trabalhadores_segmento = n(), 
-              media_salario = mean(valor_remuneracao_media), 
-              desvio_media = round(100*(media_salario / media_geral - 1),2))
-  
-  output_df <- output_df %>%
-    group_by(regiao, cnae_2_subclasse) %>% 
-    mutate(n_cnae = sum(n_trabalhadores_segmento)) %>% 
-    group_by({{var1}}, {{var2}}) %>% 
-    mutate(percentual_da_cnae=round(100*n_trabalhadores_segmento/n_cnae,2)) %>%
-    select(-n_cnae)
-  return (output_df)
-}
-
-  
-  rais_direto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_direto.csv"),
+rais_direto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_direto.csv"),
                                    show_col_types = FALSE)
   
-  rais_direto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_direto.csv"),
+rais_direto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_direto.csv"),
                                    show_col_types = FALSE)
   
-  rais_indireto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_indireto.csv"),
+rais_indireto_vinculos <- read_csv(file = file.path(getwd(), "2019_rais_microdados_vinculos_indireto.csv"),
                                    show_col_types = FALSE)
   
-  rais_indireto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_indireto.csv"),
+rais_indireto_estabele <- read_csv(file = file.path(getwd(), "2019_rais_microdados_estabelecimentos_indireto.csv"),
                                    show_col_types = FALSE) %>%
                             rename(tamanho = tamanho_estabelecimento)
 
