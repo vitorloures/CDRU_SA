@@ -6,6 +6,57 @@ library(tidyverse)
 library(magrittr, include.only = '%>%')
 library(tibble)
 
+get_classe_biogas <- function(cnae) {
+  residuos <- c("0151202",
+                "0154700",
+                "0155505",
+                "1011201",
+                "1012101",
+                "1012103",
+                "1051100",
+                "1052000",
+                "1071600",
+                "1931400",
+                "3811400",
+                "3821100",
+                "3839499")
+  
+  separacao <- c("2832100")
+  
+  biodigestao <- c("1354500",
+                   "2221800",
+                   "2731700",
+                   "2833000",
+                   "3314710",
+                   "3321000",
+                   "4313400",
+                   "4322301",
+                   "4399103")
+  
+  energia <- c(
+    "2710401",
+    "3313901", 
+    "3511501",
+    "3520401"
+  )
+  if (cnae %in% residuos){
+    classe <- "Resíduos"
+  }
+  else if (cnae %in% separacao){
+    classe <- "Separação de resíduos e uso do digestato no solo"
+  }
+  else if (cnae %in% biodigestao){
+    classe <- "Biodigestão, armazenamento e tratamento"
+  }
+  else if (cnae %in% energia){
+    classe <- "Energia elétrica e biometano"
+  }
+  else {
+    stop("Invalid CNAE")
+  }
+  return(classe)
+}
+
 uf_para_regiao <- function(uf) {
   norte <- c("AM", "AC", "PA", "TO", "RO", "RR", "AP")
   nordeste <- c("MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA")
@@ -38,7 +89,7 @@ agrega_por_cnae_e_var_brasil <- function(input_df, var) {
   media_geral <- mean(input_df$valor_remuneracao_media)
   
   output_df <- input_df %>%
-    group_by(cnae_2_subclasse,{{var}}) %>% 
+    group_by(cnae_2_subclasse, nome_classe, {{var}}) %>% 
     summarise(n_trabalhadores_segmento = n(), 
               media_salario = mean(valor_remuneracao_media), 
               desvio_media = round(100*(media_salario / media_geral - 1),2))
@@ -60,7 +111,7 @@ agrega_por_cnae_e_var_uf <- function(input_df, var) {
   media_geral <- mean(input_df$valor_remuneracao_media)
   
   output_df <- input_df %>%
-    group_by(sigla_uf, cnae_2_subclasse,{{var}}) %>% 
+    group_by(sigla_uf, cnae_2_subclasse, nome_classe, {{var}}) %>% 
     summarise(n_trabalhadores_segmento = n(), 
               media_salario = mean(valor_remuneracao_media), 
               desvio_media = round(100*(media_salario / media_geral - 1),2))
@@ -76,7 +127,7 @@ agrega_por_cnae_e_var_regiao <- function(input_df, var) {
   media_geral <- mean(input_df$valor_remuneracao_media)
   
   output_df <- input_df %>%
-    group_by(regiao, cnae_2_subclasse,{{var}}) %>% 
+    group_by(regiao, cnae_2_subclasse, nome_classe, {{var}}) %>% 
     summarise(n_trabalhadores_segmento = n(), 
               media_salario = mean(valor_remuneracao_media), 
               desvio_media = round(100*(media_salario / media_geral - 1),2))
@@ -92,7 +143,7 @@ agregacao_dupla_por_cnae_brasil <- function(input_df, var1, var2) {
   media_geral <- mean(input_df$valor_remuneracao_media)
   
   output_df <- input_df %>%
-    group_by(cnae_2_subclasse,{{var1}}, {{var2}}) %>% 
+    group_by(cnae_2_subclasse, nome_classe, {{var1}}, {{var2}}) %>% 
     summarise(n_trabalhadores_segmento = n(), 
               media_salario = mean(valor_remuneracao_media), 
               desvio_media = round(100*(media_salario / media_geral - 1),2))
@@ -142,6 +193,15 @@ extract_vinculos <- function(csv_vinculos) {
   
   rais_vinculos_tratado$regiao <- lapply(rais_vinculos_tratado$sigla_uf, 
                                            FUN=uf_para_regiao)
+  rais_vinculos_tratado$nome_classe <- lapply(rais_vinculos_tratado$cnae_2_subclasse, 
+                                              FUN=get_classe_biogas)
+  
+  rais_vinculos_tratado$raca_cor2 <- unlist(lapply(rais_vinculos_tratado$raca_cor, 
+                                  FUN=agrega_cod_raca))
+  
+  rais_vinculos_tratado$escolaridade2 <- unlist(lapply(rais_vinculos_tratado$grau_instrucao_apos_2005, 
+                                      FUN=agrega_cod_escolaridade))
+  
   
   return(rais_vinculos_tratado)
 }
@@ -159,6 +219,8 @@ extract_estabelecimentos <- function(csv_estabelecimentos){
   
   rais_estabele_tratado$regiao <- lapply(rais_estabele_tratado$sigla_uf, 
                                          FUN=uf_para_regiao)
+  rais_estabele_tratado$nome_classe <- lapply(rais_estabele_tratado$cnae_2_subclasse, 
+                                             FUN=get_classe_biogas)
   
   
   codigo_municipio_ibge <- read_excel(path = file.path(getwd(), "RELATORIO_DTB_BRASIL_MUNICIPIO.xls")) %>%
@@ -216,48 +278,48 @@ generate_estabelecimentos_multiple_aggregation_levels <- function(df_estabelecim
   out <- list()
   
   brasil_n_estabelecimentos <- df_estabelecimentos %>%
-    group_by(cnae_2_subclasse, descricao_cnae) %>% 
+    group_by(cnae_2_subclasse, descricao_cnae, nome_classe) %>% 
     summarise(n_estabelecimentos = n()) 
   
   out$brasil_n_estabelecimentos <- brasil_n_estabelecimentos
   
   brasil_n_vinculos <- df_estabelecimentos %>%
-    group_by(cnae_2_subclasse, descricao_cnae) %>% 
+    group_by(cnae_2_subclasse, descricao_cnae, nome_classe) %>% 
     summarise(quantidade_vinculos_ativos = sum(quantidade_vinculos_ativos)) 
   out$brasil_n_vinculos <- brasil_n_vinculos
   
   brasil_n_estabelecimentos_tamanho <- df_estabelecimentos %>%
-    group_by(cnae_2_subclasse, descricao_cnae, tamanho, tamanho_desc) %>% 
+    group_by(cnae_2_subclasse, descricao_cnae, nome_classe, tamanho, tamanho_desc) %>% 
     summarise(n_estabelecimentos = n()) 
   out$brasil_n_estabelecimentos_tamanho  <- brasil_n_estabelecimentos_tamanho
   
   regiao_n_estabelecimentos <- df_estabelecimentos %>%
-    group_by(regiao, cnae_2_subclasse, descricao_cnae) %>% 
+    group_by(regiao, cnae_2_subclasse, descricao_cnae, nome_classe) %>% 
     summarise(n_estabelecimentos = n()) 
   out$regiao_n_estabelecimentos <- regiao_n_estabelecimentos
   
   regiao_n_vinculos <- df_estabelecimentos %>%
-    group_by(regiao, cnae_2_subclasse, descricao_cnae) %>% 
+    group_by(regiao, cnae_2_subclasse, descricao_cnae, nome_classe) %>% 
     summarise(quantidade_vinculos_ativos = sum(quantidade_vinculos_ativos)) 
   out$regiao_n_vinculos <- regiao_n_vinculos
   
   regiao_n_estabelecimentos_tamanho <- df_estabelecimentos %>%
-    group_by(regiao, cnae_2_subclasse, descricao_cnae, tamanho, tamanho_desc) %>% 
+    group_by(regiao, cnae_2_subclasse, descricao_cnae, nome_classe, tamanho, tamanho_desc) %>% 
     summarise(n_estabelecimentos = n()) 
   out$regiao_n_estabelecimentos_tamanho <- regiao_n_estabelecimentos_tamanho
   
   uf_n_estabelecimentos <- df_estabelecimentos %>%
-    group_by(sigla_uf, cnae_2_subclasse, descricao_cnae) %>% 
+    group_by(sigla_uf, cnae_2_subclasse, descricao_cnae, nome_classe) %>% 
     summarise(n_estabelecimentos = n()) 
   out$uf_n_estabelecimentos <- uf_n_estabelecimentos
   
   uf_n_vinculos <- df_estabelecimentos %>%
-    group_by(sigla_uf, cnae_2_subclasse, descricao_cnae) %>% 
+    group_by(sigla_uf, cnae_2_subclasse, descricao_cnae, nome_classe) %>% 
     summarise(quantidade_vinculos_ativos = sum(quantidade_vinculos_ativos)) 
   out$uf_n_vinculos <- uf_n_vinculos
   
   uf_n_estabelecimentos_tamanho <- df_estabelecimentos %>%
-    group_by(sigla_uf, cnae_2_subclasse, descricao_cnae, tamanho, tamanho_desc) %>% 
+    group_by(sigla_uf, cnae_2_subclasse, descricao_cnae, nome_classe, tamanho, tamanho_desc) %>% 
     summarise(n_estabelecimentos = n()) 
   out$uf_n_estabelecimentos_tamanho <- uf_n_estabelecimentos_tamanho
   
@@ -267,21 +329,22 @@ generate_estabelecimentos_multiple_aggregation_levels <- function(df_estabelecim
 
 
 generate_vinculos_multiple_aggregation_levels <- function(df_vinculos){
+  
   out <- list()
   
   brasil_geral <- df_vinculos %>%
-    group_by(cnae_2_subclasse) %>% 
+    group_by(cnae_2_subclasse, nome_classe) %>% 
     summarise(ntrabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
   
   out$brasil_geral <- brasil_geral
   
   regiao_geral <- df_vinculos %>%
-    group_by(regiao) %>% 
+    group_by(regiao, nome_classe) %>% 
     summarise(n_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
   out$regiao_geral <- regiao_geral
   
   uf_geral <- df_vinculos %>%
-    group_by(sigla_uf) %>% 
+    group_by(sigla_uf, nome_classe) %>% 
     summarise(n_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
   out$uf_geral <- uf_geral
   
@@ -341,6 +404,24 @@ generate_vinculos_multiple_aggregation_levels <- function(df_vinculos){
   regiao_sexo_escolaridade <- agregacao_dupla_por_cnae_regiao(df_vinculos, sexo, grau_instrucao_apos_2005)
   out$regiao_sexo_escolaridade <- regiao_sexo_escolaridade
   
+  brasil_por_escolaridade2 <- agrega_por_cnae_e_var_brasil(df_vinculos, escolaridade2)
+  out$brasil_por_escolaridade2 <- brasil_por_escolaridade2
+  
+  uf_por_escolaridade2 <- agrega_por_cnae_e_var_uf(df_vinculos, escolaridade2)
+  out$uf_por_escolaridade2 <- uf_por_escolaridade2
+  
+  brasil_sexo_raca2 <- agregacao_dupla_por_cnae_brasil(df_vinculos, sexo, raca_cor2)
+  out$brasil_sexo_raca2 <- brasil_sexo_raca2
+  
+  regiao_sexo_raca2 <- agregacao_dupla_por_cnae_regiao(df_vinculos, sexo, raca_cor2)
+  out$regiao_sexo_raca2 <- regiao_sexo_raca2
+  
+  brasil_sexo_escolaridade2 <- agregacao_dupla_por_cnae_brasil(df_vinculos, sexo, escolaridade2)
+  out$brasil_sexo_escolaridade2 <- brasil_sexo_escolaridade2
+  
+  regiao_sexo_escolaridade2 <- agregacao_dupla_por_cnae_regiao(df_vinculos, sexo, escolaridade2)
+  out$regiao_sexo_escolaridade2 <- regiao_sexo_escolaridade2
+  
   return(out)
 }
 
@@ -355,7 +436,9 @@ add_colunas_descricao_dicionario <- function(dfs_vinculos){
   
   # Dicionário RAIS
   colunas_alvo <- c("raca_cor",
+                    "raca_cor2",
                     "grau_instrucao_apos_2005",
+                    "escolaridade2",
                     "sexo",
                     "faixa_etaria",
                     "indicador_portador_deficiencia",
@@ -440,6 +523,40 @@ add_colunas_descricao_dicionario <- function(dfs_vinculos){
                                  dicionario, by="grau_instrucao_apos_2005")
     }
     
+    #########
+    if(name %in% c("brasil_por_escolaridade2", "uf_por_escolaridade2")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "escolaridade2") %>%
+        rename("escolaridade2" = "chave", "descricao_escolaridade2" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="escolaridade2")
+    }
+    
+    if(name %in% c("brasil_sexo_raca2", "regiao_sexo_raca2")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "sexo") %>%
+        rename("sexo" = "chave", "descricao_sexo" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="sexo")
+      
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "raca_cor2") %>%
+        rename("raca_cor2" = "chave", "descricao_raca_cor2" = "valor") 
+      
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="raca_cor2")
+    }
+    
+    if(name %in% c("brasil_sexo_escolaridade2", "regiao_sexo_escolaridade2")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "sexo") %>%
+        rename("sexo" = "chave", "descricao_sexo" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="sexo")
+      
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "escolaridade2") %>%
+        rename("escolaridade2" = "chave", "descricao_escolaridade2" = "valor") 
+      dfs_vinculos[[name]] <- merge(unlist(dfs_vinculos[[name]]), 
+                                    dicionario, by="escolaridade2")
+    }
+    
+    
   }
   return(dfs_vinculos)
 }
@@ -452,37 +569,4 @@ gera_dicionario_com_chave_valor <- function(dicionario_rais, field_to_filter){
   return(dicionario)
 }
 
-
-df <- merge(df, dicionario_cnaes, by="cnae_2_subclasse")
-
-
-
-# Dicionário RAIS
-read_csv(file = file.path(getwd(), csv_estabelecimentos),
-         show_col_types = FALSE)
-
- colunas_alvo <- c("raca_cor",
-                   "grau_instrucao_apos_2005",
-                   "sexo",
-                   "faixa_etaria",
-                   "indicador_portador_deficiencia",
-                   "tipo_deficiencia")
-
-dicionario_rais <- read_csv(file = file.path(getwd(), "dicionario_rais.csv"), show_col_types = FALSE) %>% 
-  dplyr::filter(id_tabela == "microdados_vinculos" & nome_coluna %in% colunas_alvo) %>%
-  select(nome_coluna, chave, valor)
-  
-  
-  
-  select(5,6) %>%
-  rename("cnae_2_subclasse" = 1, "descricao_cnae" = 2) %>%
-  na.omit()
-
-df <- merge(df, dicionario_cnaes, by="cnae_2_subclasse")
-
-dplyr::filter(ano == 2019 & indicador_atividade_ano == 1) %>%
-  select(ano, sigla_uf, id_municipio,
-         quantidade_vinculos_ativos, 
-         natureza_juridica, tamanho, cnae_2_subclasse
-  ) 
 
