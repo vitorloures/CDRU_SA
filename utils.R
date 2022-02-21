@@ -103,6 +103,25 @@ agrega_por_cnae_e_var_brasil <- function(input_df, var) {
   return (output_df)
 }
 
+agrega_por_classe_e_var_brasil <- function(input_df, var) {
+  
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(nome_classe, {{var}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  output_df <- output_df %>%
+    group_by(nome_classe) %>% 
+    mutate(n_classe = sum(n_trabalhadores_segmento)) %>% 
+    group_by({{var}}) %>% 
+    mutate(percentual_da_cnae=round(100*n_trabalhadores_segmento/n_classe,2)) %>%
+    select(-n_classe)
+  return (output_df)
+}
+
 agrega_por_cnae_e_var_uf <- function(input_df, var) {
   # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
   # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
@@ -119,6 +138,18 @@ agrega_por_cnae_e_var_uf <- function(input_df, var) {
   return (output_df)
 }
 
+agrega_por_classe_e_var_uf <- function(input_df, var) {
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(sigla_uf, nome_classe, {{var}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  return (output_df)
+}
+
 agrega_por_cnae_e_var_regiao <- function(input_df, var) {
   # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
   # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
@@ -128,6 +159,22 @@ agrega_por_cnae_e_var_regiao <- function(input_df, var) {
   
   output_df <- input_df %>%
     group_by(regiao, cnae_2_subclasse, nome_classe, {{var}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  return (output_df)
+}
+
+agrega_por_classe_e_var_regiao <- function(input_df, var) {
+  # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
+  # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
+  # , e as CNAEs de emprego in serao diferentes
+  
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(regiao, nome_classe, {{var}}) %>% 
     summarise(n_trabalhadores_segmento = n(), 
               media_salario = mean(valor_remuneracao_media), 
               desvio_media = round(100*(media_salario / media_geral - 1),2))
@@ -157,6 +204,24 @@ agregacao_dupla_por_cnae_brasil <- function(input_df, var1, var2) {
   return (output_df)
 }
 
+agregacao_dupla_por_classe_brasil <- function(input_df, var1, var2) {
+    media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(nome_classe, {{var1}}, {{var2}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  output_df <- output_df %>%
+    group_by(nome_classe) %>% 
+    mutate(n_classe = sum(n_trabalhadores_segmento)) %>% 
+    group_by({{var1}}, {{var2}}) %>% 
+    mutate(percentual_da_classe=round(100*n_trabalhadores_segmento/n_classe,2)) %>%
+    select(-n_classe)
+  return (output_df)
+}
+
 agregacao_dupla_por_cnae_regiao <- function(input_df, var1, var2) {
   # Iremos calcular o desvio da média como a variação percentual entre a média do segmento analisado 
   # e a média dos trabalhadores de todas as CNAEs analisadas. Note que a média das CNAEs de emprego
@@ -178,6 +243,26 @@ agregacao_dupla_por_cnae_regiao <- function(input_df, var1, var2) {
     select(-n_cnae)
   return (output_df)
 }
+
+agregacao_dupla_por_classe_regiao <- function(input_df, var1, var2) {
+
+  media_geral <- mean(input_df$valor_remuneracao_media)
+  
+  output_df <- input_df %>%
+    group_by(regiao, nome_classe,{{var1}}, {{var2}}) %>% 
+    summarise(n_trabalhadores_segmento = n(), 
+              media_salario = mean(valor_remuneracao_media), 
+              desvio_media = round(100*(media_salario / media_geral - 1),2))
+  
+  output_df <- output_df %>%
+    group_by(regiao, nome_classe) %>% 
+    mutate(n_classe = sum(n_trabalhadores_segmento)) %>% 
+    group_by({{var1}}, {{var2}}) %>% 
+    mutate(percentual_da_classe=round(100*n_trabalhadores_segmento/n_classe,2)) %>%
+    select(-n_classe)
+  return (output_df)
+}
+
 
 extract_vinculos <- function(csv_vinculos) {
   rais_vinculos <- read_csv(file = file.path(getwd(), csv_vinculos),
@@ -201,7 +286,6 @@ extract_vinculos <- function(csv_vinculos) {
   
   rais_vinculos_tratado$escolaridade2 <- unlist(lapply(rais_vinculos_tratado$grau_instrucao_apos_2005, 
                                       FUN=agrega_cod_escolaridade))
-  
   
   return(rais_vinculos_tratado)
 }
@@ -425,6 +509,106 @@ generate_vinculos_multiple_aggregation_levels <- function(df_vinculos){
   return(out)
 }
 
+generate_vinculos_class_aggregation <- function(df_vinculos){
+  
+  out <- list()
+  
+  brasil_geral <- df_vinculos %>%
+    group_by(nome_classe) %>% 
+    summarise(ntrabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+  out$brasil_geral <- brasil_geral
+  
+  regiao_geral <- df_vinculos %>%
+    group_by(regiao, nome_classe) %>% 
+    summarise(n_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+  out$regiao_geral <- regiao_geral
+  
+  uf_geral <- df_vinculos %>%
+    group_by(sigla_uf, nome_classe) %>% 
+    summarise(n_trabalhadores = n(), media_salarial = mean(valor_remuneracao_media)) 
+  out$uf_geral <- uf_geral
+  
+  ###
+  
+  brasil_por_regiao <- agrega_por_classe_e_var_brasil(df_vinculos, regiao)
+  out$brasil_por_regiao
+  
+  brasil_por_raca <- agrega_por_classe_e_var_brasil(df_vinculos, raca_cor)
+  out$brasil_por_raca <- brasil_por_raca
+  
+  uf_por_raca <- agrega_por_classe_e_var_uf(df_vinculos, raca_cor)
+  out$uf_por_raca <- uf_por_raca
+  
+  brasil_por_escolaridade <- agrega_por_classe_e_var_brasil(df_vinculos, grau_instrucao_apos_2005)
+  out$brasil_por_escolaridade <- brasil_por_escolaridade
+  
+  uf_por_escolaridade <- agrega_por_classe_e_var_uf(df_vinculos, grau_instrucao_apos_2005)
+  out$uf_por_escolaridade <- uf_por_escolaridade
+  
+  brasil_por_sexo <- agrega_por_classe_e_var_brasil(df_vinculos, sexo)
+  out$brasil_por_sexo <- brasil_por_sexo
+  
+  uf_por_sexo <- agrega_por_classe_e_var_uf(df_vinculos, sexo)
+  out$uf_por_sexo <- uf_por_sexo
+  
+  brasil_por_faixa_etaria <- agrega_por_classe_e_var_brasil(df_vinculos, faixa_etaria)
+  out$brasil_por_faixa_etaria <- brasil_por_faixa_etaria
+  
+  uf_por_faixa_etaria <- agrega_por_classe_e_var_uf(df_vinculos, faixa_etaria)
+  out$uf_por_faixa_etaria <- uf_por_faixa_etaria
+  
+  brasil_por_deficiencia <- agrega_por_classe_e_var_brasil(df_vinculos, indicador_portador_deficiencia)
+  out$brasil_por_deficiencia <- brasil_por_deficiencia
+  
+  regiao_por_deficiencia  <- agrega_por_classe_e_var_regiao(df_vinculos, indicador_portador_deficiencia)
+  out$regiao_por_deficiencia <- regiao_por_deficiencia
+  
+  uf_por_deficiencia  <- agrega_por_classe_e_var_uf(df_vinculos, indicador_portador_deficiencia)
+  out$uf_por_deficiencia <- uf_por_deficiencia
+  
+  brasil_por_tipo_deficiencia <- agrega_por_classe_e_var_brasil(
+    dplyr::filter(df_vinculos, tipo_deficiencia>0), tipo_deficiencia)
+  out$brasil_por_tipo_deficiencia <- brasil_por_tipo_deficiencia
+  
+  regiao_por_tipo_deficiencia <- agrega_por_classe_e_var_regiao(
+    dplyr::filter(df_vinculos, tipo_deficiencia>0), tipo_deficiencia)
+  out$regiao_por_tipo_deficiencia <- regiao_por_tipo_deficiencia
+  
+  brasil_sexo_raca <- agregacao_dupla_por_classe_brasil(df_vinculos, sexo, raca_cor)
+  out$brasil_sexo_raca <- brasil_sexo_raca
+  
+  regiao_sexo_raca <- agregacao_dupla_por_classe_regiao(df_vinculos, sexo, raca_cor)
+  out$regiao_sexo_raca <- regiao_sexo_raca
+  
+  brasil_sexo_escolaridade <- agregacao_dupla_por_classe_brasil(df_vinculos, sexo, grau_instrucao_apos_2005)
+  out$brasil_sexo_escolaridade <- brasil_sexo_escolaridade
+  
+  regiao_sexo_escolaridade <- agregacao_dupla_por_classe_regiao(df_vinculos, sexo, grau_instrucao_apos_2005)
+  out$regiao_sexo_escolaridade <- regiao_sexo_escolaridade
+  
+  brasil_por_escolaridade2 <- agrega_por_classe_e_var_brasil(df_vinculos, escolaridade2)
+  out$brasil_por_escolaridade2 <- brasil_por_escolaridade2
+  
+  uf_por_escolaridade2 <- agrega_por_classe_e_var_uf(df_vinculos, escolaridade2)
+  out$uf_por_escolaridade2 <- uf_por_escolaridade2
+  
+  brasil_sexo_raca2 <- agregacao_dupla_por_classe_brasil(df_vinculos, sexo, raca_cor2)
+  out$brasil_sexo_raca2 <- brasil_sexo_raca2
+  
+  regiao_sexo_raca2 <- agregacao_dupla_por_classe_regiao(df_vinculos, sexo, raca_cor2)
+  out$regiao_sexo_raca2 <- regiao_sexo_raca2
+  
+  brasil_sexo_escolaridade2 <- agregacao_dupla_por_classe_brasil(df_vinculos, sexo, escolaridade2)
+  out$brasil_sexo_escolaridade2 <- brasil_sexo_escolaridade2
+  
+  regiao_sexo_escolaridade2 <- agregacao_dupla_por_classe_regiao(df_vinculos, sexo, escolaridade2)
+  out$regiao_sexo_escolaridade2 <- regiao_sexo_escolaridade2
+  
+  return(out)
+  
+  
+}
+
 add_colunas_descricao_dicionario <- function(dfs_vinculos){
   # Nome da classe CNAE
   dicionario_cnaes <- read_excel(path = file.path(getwd(), "CNAE20_Subclasses_EstruturaDetalhada.xls")) %>% 
@@ -561,6 +745,131 @@ add_colunas_descricao_dicionario <- function(dfs_vinculos){
   return(dfs_vinculos)
 }
 
+add_colunas_descricao_dicionario_classe <- function(dfs_vinculos){
+  # Dicionário RAIS
+  colunas_alvo <- c("raca_cor",
+                    "raca_cor2",
+                    "grau_instrucao_apos_2005",
+                    "escolaridade2",
+                    "sexo",
+                    "faixa_etaria",
+                    "indicador_portador_deficiencia",
+                    "tipo_deficiencia")
+  
+  dicionario_rais <- read_csv(file = file.path(getwd(), "dicionario_rais.csv"), show_col_types = FALSE) %>% 
+    dplyr::filter(id_tabela == "microdados_vinculos" & nome_coluna %in% colunas_alvo) %>%
+    select(nome_coluna, chave, valor)
+  
+  for (name in names(dfs_vinculos)){
+    # região geral e uf_geral não faz nada? 
+    if (name %in% c("regiao_geral", "uf_geral")){
+      next
+    }
+    # Adiciona descrição de raça
+    if(name %in% c("brasil_por_raca", "uf_por_raca")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "raca_cor") %>%
+        rename("raca_cor" = "chave", "descricao_raca_cor" = "valor") 
+      
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="raca_cor")
+    }
+    # Adiciona descrição de escolaridade
+    if(name %in% c("brasil_por_escolaridade", "uf_por_escolaridade")){
+      dicionario <-gera_dicionario_com_chave_valor(dicionario_rais, "grau_instrucao_apos_2005") %>%
+        rename("grau_instrucao_apos_2005" = "chave", "descricao_grau_instrucao_apos_2005" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="grau_instrucao_apos_2005")
+      
+    }
+    if(name %in% c("brasil_por_sexo", "uf_por_sexo")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "sexo") %>%
+        rename("sexo" = "chave", "descrica_sexo" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="sexo")
+    }
+    if(name %in% c("brasil_por_faixa_etaria", "uf_por_faixa_etaria")){
+      
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "faixa_etaria") %>%
+        rename("faixa_etaria" = "chave", "descricao_faixa_etaria" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="faixa_etaria")
+    }
+    if(name %in% c("brasil_por_deficiencia", "regiao_por_deficiencia", "uf_por_deficiencia")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "indicador_portador_deficiencia") %>%
+        rename("indicador_portador_deficiencia" = "chave", "descricao_indicador_portador_deficiencia" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="indicador_portador_deficiencia")
+    }
+    
+    if(name %in% c("brasil_por_tipo_deficiencia", "regiao_por_tipo_deficiencia")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "tipo_deficiencia") %>%
+        rename("tipo_deficiencia" = "chave", "descricao_tipo_deficiencia" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="tipo_deficiencia")
+    }
+    
+    if(name %in% c("brasil_sexo_raca", "regiao_sexo_raca")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "sexo") %>%
+        rename("sexo" = "chave", "descricao_sexo" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="sexo")
+      
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "raca_cor") %>%
+        rename("raca_cor" = "chave", "descricao_raca_cor" = "valor") 
+      
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="raca_cor")
+    }
+    
+    if(name %in% c("brasil_sexo_escolaridade", "regiao_sexo_escolaridade")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "sexo") %>%
+        rename("sexo" = "chave", "descricao_sexo" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="sexo")
+      
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "grau_instrucao_apos_2005") %>%
+        rename("grau_instrucao_apos_2005" = "chave", "descricao_grau_instrucao_apos_2005" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="grau_instrucao_apos_2005")
+    }
+    
+    #########
+    if(name %in% c("brasil_por_escolaridade2", "uf_por_escolaridade2")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "escolaridade2") %>%
+        rename("escolaridade2" = "chave", "descricao_escolaridade2" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="escolaridade2")
+    }
+    
+    if(name %in% c("brasil_sexo_raca2", "regiao_sexo_raca2")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "sexo") %>%
+        rename("sexo" = "chave", "descricao_sexo" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="sexo")
+      
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "raca_cor2") %>%
+        rename("raca_cor2" = "chave", "descricao_raca_cor2" = "valor") 
+      
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="raca_cor2")
+    }
+    
+    if(name %in% c("brasil_sexo_escolaridade2", "regiao_sexo_escolaridade2")){
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "sexo") %>%
+        rename("sexo" = "chave", "descricao_sexo" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="sexo")
+      
+      dicionario <- gera_dicionario_com_chave_valor(dicionario_rais, "escolaridade2") %>%
+        rename("escolaridade2" = "chave", "descricao_escolaridade2" = "valor") 
+      dfs_vinculos[[name]] <- merge(dfs_vinculos[[name]], 
+                                    dicionario, by="escolaridade2")
+    }
+    
+    
+  }
+  return(dfs_vinculos)
+}
 
 gera_dicionario_com_chave_valor <- function(dicionario_rais, field_to_filter){
   nome_coluna <- paste("descricao", field_to_filter, sep="_")

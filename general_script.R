@@ -13,7 +13,11 @@ dfs_estabelecimentos <- generate_estabelecimentos_multiple_aggregation_levels(ra
 
 dfs_vinculos <- generate_vinculos_multiple_aggregation_levels(rais_vinculos)
 
+dfs_vinculos_classes <- generate_vinculos_class_aggregation(rais_vinculos)
+
 dfs_vinculos_descricao_completa <- add_colunas_descricao_dicionario(dfs_vinculos)
+
+dfs_vinculos_classes_descricao <- add_colunas_descricao_dicionario_classe(dfs_vinculos_classes)
 
 write.xlsx(list(brasil_estab = dfs_estabelecimentos$brasil_n_estabelecimentos, 
                 brasil_vinc = dfs_estabelecimentos$brasil_n_vinculos, 
@@ -72,6 +76,47 @@ write.xlsx(list(
   overwrite = TRUE)
 
 
+# Arquivos para classe
+
+write.xlsx(list(geral = dfs_vinculos_classes_descricao$brasil_geral, 
+                # regiao = brasil_dct_por_regiao, 
+                raca = dfs_vinculos_classes_descricao$brasil_por_raca, 
+                tipo_deficiencia = dfs_vinculos_classes_descricao$brasil_por_tipo_deficiencia,
+                
+                sexo_raca = dfs_vinculos_classes_descricao$brasil_sexo_raca,
+                sexo_raca2 = dfs_vinculos_classes_descricao$brasil_sexo_raca2,
+                sexo_escolaridade = dfs_vinculos_classes_descricao$brasil_sexo_escolaridade,
+                sexo_escolaridade2 = dfs_vinculos_classes_descricao$brasil_por_escolaridade2,
+                escolaridade = dfs_vinculos_classes_descricao$brasil_por_escolaridade,
+                escolaridade2 = dfs_vinculos_classes_descricao$brasil_por_escolaridade2,
+                
+                sexo = dfs_vinculos_classes_descricao$brasil_por_sexo,
+                faixa_etaria = dfs_vinculos_classes_descricao$brasil_por_faixa_etaria,
+                deficiencia = dfs_vinculos_classes_descricao$brasil_por_deficiencia),
+           file.path(getwd(), "brasil_CLASSE_biogas_vinculos.xlsx"), 
+           overwrite = TRUE)
+
+write.xlsx(list(
+  geral = dfs_vinculos_classes_descricao$uf_geral,
+  raca = dfs_vinculos_classes_descricao$uf_por_raca,
+  escolaridade = dfs_vinculos_classes_descricao$uf_por_escolaridade,
+  escolaridade2 = dfs_vinculos_classes_descricao$uf_por_escolaridade2,
+  sexo = dfs_vinculos_classes_descricao$uf_por_sexo,
+  faixa_etaria = dfs_vinculos_classes_descricao$uf_por_faixa_etaria,
+  deficiencia = dfs_vinculos_classes_descricao$uf_por_deficiencia),
+  file.path(getwd(), "uf_CLASSE_biogas_vinculos.xlsx"),
+  overwrite = TRUE)
+
+write.xlsx(list(
+  geral = dfs_vinculos_classes_descricao$regiao_geral,
+  sexo_escolaridade = dfs_vinculos_classes_descricao$regiao_sexo_escolaridade,
+  sexo_raca = dfs_vinculos_classes_descricao$regiao_sexo_raca,
+  sexo_escolaridade2 = dfs_vinculos_classes_descricao$regiao_sexo_escolaridade2,
+  sexo_raca2 = dfs_vinculos_classes_descricao$regiao_sexo_raca2,
+  tipo_deficiencia = dfs_vinculos_classes_descricao$regiao_por_tipo_deficiencia, 
+  deficiencia = dfs_vinculos_classes_descricao$regiao_por_deficiencia), 
+  file.path(getwd(), "regiao_CLASSE_biogas_vinculos.xlsx"), 
+  overwrite = TRUE)
 
 
 
